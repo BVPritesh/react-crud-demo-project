@@ -22,10 +22,21 @@
     h1 {
         @apply text-3xl lg:text-4xl font-bold;
     }
+
+    .site-wrapper {
+        @apply min-h-screen pt-10 lg:pt-[72px];
+    }
 }
 
 @layer components {
 
+    .form-control {
+        @apply border border-gray-500 rounded-md py-2 px-4 h-10 w-full;
+    }
+
+    .btn-primary {
+        @apply py-1 px-4 min-h-10 flex items-center rounded-md cursor-pointer outline-0 border-0 bg-blue-600 hover:bg-blue-900 text-white;
+    }
 }
 
 @layer utilities {
