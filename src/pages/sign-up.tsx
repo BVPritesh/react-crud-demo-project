@@ -1,7 +1,9 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
+import { useAuth } from "../contexts/AuthContext";
 
 export default function SignUp() {
-
+  const { login } = useAuth();
   const [formData, setFormData] = useState({
     name: "",
     email: "",
@@ -9,9 +11,19 @@ export default function SignUp() {
     password: ""
   });
 
-  const [errors, setErrors] = useState({});
+  const [errors, setErrors] = useState<any>({});
   const [apiError, setApiError] = useState("");
   const [loading, setLoading] = useState(false);
+
+  const navigate = useNavigate();
+
+  // Redirect away if already signed in
+  useEffect(() => {
+    const token = localStorage.getItem("token");
+    if (token) {
+      navigate("/dashboard", { replace: true });
+    }
+  }, [navigate]);
 
   function handleChange(e: { target: { name: string; value: string; }; }) {
     const { name, value } = e.target;
@@ -21,7 +33,7 @@ export default function SignUp() {
 
     // Basic validation function
   const validate = () => {
-    const newErrors = {};
+    const newErrors: any = {};
 
     if (!formData.email.trim()) {
       newErrors.email = "Email is required";
@@ -76,13 +88,25 @@ export default function SignUp() {
         throw new Error(data.error || "Sign up failed");
       }
 
-      alert("Sign up successful! Token: " + data.id);
+      // store token and redirect to dashboard
+      const token = String(data.id ?? "");
+      login(token);
+      alert("Sign up successful!");
+      // SPA navigation (preferred)
+      navigate("/dashboard", { replace: true });
+      // Fallback: if the SPA router doesn't update the UI immediately,
+      // force a full navigation so the dashboard reads localStorage.
+      setTimeout(() => {
+        if (window.location.pathname !== "/dashboard") {
+          window.location.href = "/dashboard";
+        }
+      }, 100);
+
       console.log("Sign up Response:", data);
       // You can store token in localStorage
-      localStorage.setItem("token", data.id);
 
-    } catch (error) {
-      setApiError(error.message);
+    } catch (error: any) {
+      setApiError(error?.message ?? "An error occurred");
     } finally {
       setLoading(false);
     }

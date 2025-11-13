@@ -1,6 +1,9 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
+import { useAuth } from "../contexts/AuthContext";
 
 export default function SignIn() {
+  const { login } = useAuth();
   // Form data as plain object
   const [formData, setFormData] = useState({
     email: "",
@@ -11,6 +14,16 @@ export default function SignIn() {
   const [errors, setErrors] = useState<{ email?: string; password?: string }>({});
   const [apiError, setApiError] = useState("");
   const [loading, setLoading] = useState(false);
+
+  const navigate = useNavigate();
+
+  // Redirect away if already signed in
+  useEffect(() => {
+    const token = localStorage.getItem("token");
+    if (token) {
+      navigate("/dashboard", { replace: true });
+    }
+  }, [navigate]);
 
   // Input change handler
   function handleChange(e: React.ChangeEvent<HTMLInputElement>) {
@@ -68,10 +81,21 @@ export default function SignIn() {
         throw new Error(data.error || "Login failed");
       }
 
-      alert("Login successful! Token: " + data.id);
-      localStorage.setItem("token", data.id);
+      // store token and redirect to dashboard
+      const token = String(data.id ?? "");
+      // update context (also persists to localStorage via provider)
+      login(token);
+      alert("Login successful!");
+      // SPA navigation (preferred)
+      navigate("/dashboard", { replace: true });
+      // Fallback: rarely needed, but keep if you want a hard reload
+      setTimeout(() => {
+        if (window.location.pathname !== "/dashboard") {
+          window.location.href = "/dashboard";
+        }
+      }, 100);
     } catch (error: any) {
-      setApiError(error.message);
+      setApiError(error?.message ?? "An error occurred");
     } finally {
       setLoading(false);
     }

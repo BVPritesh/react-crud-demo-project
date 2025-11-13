@@ -1,14 +1,16 @@
 import { useEffect, useState } from "react";
 import { NavLink, useNavigate, } from "react-router-dom";
+import { useAuth } from "../contexts/AuthContext";
 
 export default function Header() {
+    const { isAuthenticated, logout } = useAuth();
+    const navigate = useNavigate();
 
     const [menuOpen, SetMenuOpen] =  useState(false);
     const [hideHeader, setHideHeader] = useState(false);
     const [lastScroll, setLastScroll] = useState(0);
     const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
     const [isLoggedIn, setIsLoggedIn] = useState(!!localStorage.getItem("token"));
-    const navigate = useNavigate();
 
     // Update auth state when localStorage changes (like logout/login)
     useEffect(() => {
@@ -24,9 +26,8 @@ export default function Header() {
 
     // Handle logout
     const handleLogout = () => {
-        localStorage.removeItem("token");
-        setIsLoggedIn(false);
-        navigate("/");
+        logout();
+        navigate("/", { replace: true });
     };
 
     useEffect(() => {
@@ -105,7 +106,7 @@ export default function Header() {
                             </NavLink>
                         </li>
 
-                        {!isLoggedIn ? (
+                        {!isAuthenticated ? (
                             <>
                                 <li>
                                     <NavLink 

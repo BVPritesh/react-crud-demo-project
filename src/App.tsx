@@ -6,6 +6,7 @@ import SignIn from "./pages/sign-in";
 import SignUp from "./pages/sign-up";
 import About from "./pages/about";
 import Dashboard from "./pages/admin/dashboard";
+import { AuthProvider } from "./contexts/AuthContext";
 
 const router = createBrowserRouter([
   {
@@ -47,7 +48,11 @@ const router = createBrowserRouter([
 ]);
 
 function App() {
-  return <RouterProvider router={router} />;
+  return (
+    <AuthProvider>
+      <RouterProvider router={router} />
+    </AuthProvider>
+  );
 }
 
 export default App;
