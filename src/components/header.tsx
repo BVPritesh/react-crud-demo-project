@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Link, NavLink } from "react-router-dom";
+import { NavLink, useNavigate, } from "react-router-dom";
 
 export default function Header() {
 
@@ -7,6 +7,27 @@ export default function Header() {
     const [hideHeader, setHideHeader] = useState(false);
     const [lastScroll, setLastScroll] = useState(0);
     const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
+    const [isLoggedIn, setIsLoggedIn] = useState(!!localStorage.getItem("token"));
+    const navigate = useNavigate();
+
+    // Update auth state when localStorage changes (like logout/login)
+    useEffect(() => {
+        const checkToken = () => setIsLoggedIn(!!localStorage.getItem("token"));
+        window.addEventListener("storage", checkToken);
+        return () => window.removeEventListener("storage", checkToken);
+    }, []);
+
+    // Detect login state on load
+    useEffect(() => {
+        setIsLoggedIn(!!localStorage.getItem("token"));
+    }, []);
+
+    // Handle logout
+    const handleLogout = () => {
+        localStorage.removeItem("token");
+        setIsLoggedIn(false);
+        navigate("/");
+    };
 
     useEffect(() => {
         function handleResize() {
@@ -83,24 +104,49 @@ export default function Header() {
                                 About
                             </NavLink>
                         </li>
-                        <li>
-                            <NavLink 
-                                to="/sign-in" 
-                                className={({ isActive }) => `px-4 py-2 block md:inline-block hover:bg-amber-200/20 duration-300 transition-all ${isActive ? 'bg-amber-200/20' : ''}`}
-                                onClick={() => SetMenuOpen(false)}
-                            >
-                                Sign In
-                            </NavLink>
-                        </li>
-                        <li>
-                            <NavLink 
-                                to="/sign-up" 
-                                className={({ isActive }) => `px-4 py-2 block md:inline-block hover:bg-amber-200/20 duration-300 transition-all ${isActive ? 'bg-amber-200/20' : ''}`}
-                                onClick={() => SetMenuOpen(false)}
-                            >
-                                Sign Up
-                            </NavLink>
-                        </li>
+
+                        {!isLoggedIn ? (
+                            <>
+                                <li>
+                                    <NavLink 
+                                        to="/sign-in" 
+                                        className={({ isActive }) => `px-4 py-2 block md:inline-block hover:bg-amber-200/20 duration-300 transition-all ${isActive ? 'bg-amber-200/20' : ''}`}
+                                        onClick={() => SetMenuOpen(false)}
+                                    >
+                                        Sign In
+                                    </NavLink>
+                                </li>
+                                <li>
+                                    <NavLink 
+                                        to="/sign-up" 
+                                        className={({ isActive }) => `px-4 py-2 block md:inline-block hover:bg-amber-200/20 duration-300 transition-all ${isActive ? 'bg-amber-200/20' : ''}`}
+                                        onClick={() => SetMenuOpen(false)}
+                                    >
+                                        Sign Up
+                                    </NavLink>
+                                </li>
+                            </>
+                        ): (
+                            <>
+                                <li>
+                                <NavLink
+                                    to="/dashboard"
+                                    className="px-4 py-2 block md:inline-block hover:bg-amber-200/20 duration-300 transition-all"
+                                    onClick={() => SetMenuOpen(false)}
+                                >
+                                    Welcome to Dashboard
+                                </NavLink>
+                                </li>
+                                <li>
+                                <button
+                                    onClick={handleLogout}
+                                    className="px-4 py-2 block md:inline-block hover:bg-amber-200/20 duration-300 transition-all"
+                                >
+                                    Logout
+                                </button>
+                                </li>
+                            </>
+                            )}
                     </ul>
 
 
