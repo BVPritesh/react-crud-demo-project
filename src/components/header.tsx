@@ -139,12 +139,12 @@ export default function Header() {
                                 </NavLink>
                                 </li>
                                 <li>
-                                <button
-                                    onClick={handleLogout}
-                                    className="px-4 py-2 block md:inline-block hover:bg-amber-200/20 duration-300 transition-all"
-                                >
-                                    Logout
-                                </button>
+                                    <button
+                                        onClick={handleLogout}
+                                        className="px-4 py-2 block md:inline-block hover:bg-amber-200/20 duration-300 transition-all cursor-pointer"
+                                    >
+                                        Logout
+                                    </button>
                                 </li>
                             </>
                             )}
