@@ -1,14 +1,12 @@
+import ENDPOINTS from "../../config/api";
 import React, { useEffect, useState } from "react";
+import { validatePostForm, type FormErrors } from "../../utils/validation";
 import { useAuth } from "../../contexts/AuthContext";
+import type { Post } from "../../types/types";
+import useToast from "../../hooks/useToast";
+import AddEditPost from "../../components/AddEditPost";
 
-type Post = {
-  userId?: number;
-  id: number;
-  title: string;
-  body: string;
-};
-
-export default function Dashboard(): JSX.Element {
+const Dashboard = (): React.ReactElement => {
   const { token } = useAuth();
   const [posts, setPosts] = useState<Post[]>([]);
   const [loading, setLoading] = useState<boolean>(false);
@@ -26,100 +24,75 @@ export default function Dashboard(): JSX.Element {
   // deleting state
   const [deletingId, setDeletingId] = useState<number | null>(null);
 
-  // simple toast
-  const [toastMessage, setToastMessage] = useState<string>("");
-  const [isToastVisible, setIsToastVisible] = useState<boolean>(false);
+  // toast hook
+  const { showToast, Toast } = useToast();
 
   useEffect(() => {
-    let mounted = true;
+    const controller = new AbortController();
+    const { signal } = controller;
 
-    async function fetchPosts() {
+    const fetchPosts = async (): Promise<void> => {
       setLoading(true);
       setApiError("");
       try {
-        const headers: Record<string, string> = {
-          "Content-Type": "application/json",
-        };
-        if (token) {
-          headers["Authorization"] = `Bearer ${token}`;
-        }
+        const headers: Record<string, string> = { "Content-Type": "application/json" };
+        if (token) headers.Authorization = `Bearer ${token}`;
 
-        const res = await fetch("https://jsonplaceholder.typicode.com/posts", {
-          method: "GET",
-          headers,
-        });
+        const res = await fetch(ENDPOINTS.POSTS, { method: "GET", headers, signal });
 
         if (!res.ok) {
           const errBody = await res.json().catch(() => ({}));
-          throw new Error(errBody?.message || `Request failed: ${res.status}`);
+          throw new Error((errBody as any)?.message || `Request failed: ${res.status}`);
         }
 
         const data: Post[] = await res.json();
-        if (mounted) {
-          // optional: limit items shown for performance
-          setPosts(data.slice(0, 20));
-        }
+        if (signal.aborted) return;
+        setPosts(data.slice(0, 20));
       } catch (err: any) {
-        if (mounted) setApiError(err?.message ?? "An error occurred");
+        if (signal.aborted) return;
+        const message = err?.message ?? "An error occurred";
+        setApiError(message);
+        showToast(message, "error");
       } finally {
-        if (mounted) setLoading(false);
+        if (!signal.aborted) setLoading(false);
       }
-    }
+    };
 
     fetchPosts();
+
     return () => {
-      mounted = false;
+      controller.abort();
     };
   }, [token]);
 
-  // Validation rules
-  const titleRegex = /^[A-Za-z\s]+$/; // letters and spaces only
-  const bodyRegex = /^[A-Za-z0-9\s]+$/; // letters, numbers and spaces only
-
-  function validateForm() {
-    const errors: { title?: string; body?: string } = {};
-    if (!title.trim()) {
-      errors.title = "Post title is required";
-    } else if (!titleRegex.test(title.trim())) {
-      errors.title = "Title must contain letters and spaces only";
-    }
-
-    if (!body.trim()) {
-      errors.body = "Post body is required";
-    } else if (!bodyRegex.test(body.trim())) {
-      errors.body = "Body may contain only letters, numbers and spaces";
-    }
-
+  // Validation using shared utils
+  const validateForm = (): boolean => {
+    const errors: FormErrors = validatePostForm(title, body);
     setFormErrors(errors);
     return Object.keys(errors).length === 0;
-  }
+  };
 
-  function showToast(message: string) {
-    setToastMessage(message);
-    setIsToastVisible(true);
-    setTimeout(() => setIsToastVisible(false), 3000);
-  }
+  // reset form values / editing state
+  const resetForm = (): void => {
+    setTitle("");
+    setBody("");
+    setFormErrors({});
+    setEditingId(null);
+    setAdding(false);
+  };
 
-  async function handleAddPost(e: React.FormEvent) {
+  const handleAddPost = async (e: React.FormEvent): Promise<void> => {
     e.preventDefault();
     setApiError("");
-
     if (!validateForm()) return;
 
     setAdding(true);
     try {
-      const headers: Record<string, string> = {
-        "Content-Type": "application/json",
-      };
-      if (token) {
-        headers["Authorization"] = `Bearer ${token}`;
-      }
+      const headers: Record<string, string> = { "Content-Type": "application/json" };
+      if (token) headers["Authorization"] = `Bearer ${token}`;
 
-      // If editingId is present, call PUT to update that post
       const isEdit = editingId !== null;
-      const url = isEdit
-        ? `https://jsonplaceholder.typicode.com/posts/${editingId}`
-        : "https://jsonplaceholder.typicode.com/posts";
+      const url = isEdit ? ENDPOINTS.POST_BY_ID(editingId!) : ENDPOINTS.POSTS;
       const method = isEdit ? "PUT" : "POST";
 
       const payload = {
@@ -142,7 +115,6 @@ export default function Dashboard(): JSX.Element {
       }
 
       if (isEdit) {
-        // replace updated post in list
         setPosts((prev) =>
           prev.map((p) =>
             p.id === editingId ? { id: data.id ?? editingId!, title: data.title, body: data.body, userId: data.userId } : p
@@ -150,136 +122,87 @@ export default function Dashboard(): JSX.Element {
         );
         showToast("Post updated successfully");
       } else {
-        // prepend new post to list (jsonplaceholder returns an id)
         setPosts((prev) => [{ id: data.id ?? Date.now(), title: data.title, body: data.body, userId: data.userId }, ...prev]);
-        showToast("Post added successfully");
+        showToast("Post added successfully", "success");
       }
 
-      // reset form + editing state
-      setTitle("");
-      setBody("");
-      setFormErrors({});
-      setEditingId(null);
+      // use shared reset helper
+      resetForm();
     } catch (err: any) {
       const message = err?.message ?? "An error occurred while saving post";
       setApiError(message);
-      showToast(message);
+      showToast(message, "error");
     } finally {
       setAdding(false);
     }
-  }
+  };
 
   // populate form to edit post
-  function handleEditPost(post: Post) {
+  const handleEditPost = (post: Post): void => {
     setTitle(post.title);
     setBody(post.body);
     setEditingId(post.id);
-    // scroll to form
     window.scrollTo({ top: 0, behavior: "smooth" });
-  }
+  };
 
-  function handleCancelEdit() {
+  const handleCancelEdit = (): void => {
     setEditingId(null);
     setTitle("");
     setBody("");
     setFormErrors({});
-  }
+  };
 
   // Delete post
-  async function handleDeletePost(id: number) {
+  const handleDeletePost = async (id: number): Promise<void> => {
     const confirmed = window.confirm("Are you sure you want to delete this post?");
     if (!confirmed) return;
 
     setApiError("");
     setDeletingId(id);
     try {
-      const headers: Record<string, string> = {
-        "Content-Type": "application/json",
-      };
-      if (token) {
-        headers["Authorization"] = `Bearer ${token}`;
-      }
+      const headers: Record<string, string> = { "Content-Type": "application/json" };
+      if (token) headers["Authorization"] = `Bearer ${token}`;
 
-      const res = await fetch(`https://jsonplaceholder.typicode.com/posts/${id}`, {
+      const res = await fetch(ENDPOINTS.POST_BY_ID(id), {
         method: "DELETE",
         headers,
       });
 
-      // jsonplaceholder returns {}, treat any 2xx as success
       if (!res.ok) {
         let errBody = {};
         try {
           errBody = await res.json();
-        } catch {}
+        } catch { /* empty */ }
         throw new Error((errBody as any)?.message || `Delete failed: ${res.status}`);
       }
 
-      // optimistic update: remove from list
       setPosts((prev) => prev.filter((p) => p.id !== id));
-      showToast("Post deleted successfully");
+      showToast("Post deleted successfully", "success");
     } catch (err: any) {
       const message = err?.message ?? "An error occurred while deleting post";
       setApiError(message);
-      showToast(message);
+      showToast(message, "error");
     } finally {
       setDeletingId(null);
     }
-  }
+  };
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
       <h1 className="text-4xl font-bold text-blue-600 mb-6">Dashboard</h1>
 
-      {/* Add / Update Post */}
-      <div className="mb-8 pb-8 border-b border-gray-300 mt-4 pt-5 border-t">
-        <h2 className="capitalize font-medium">{editingId ? "Update post" : "Add new post"}</h2>
-        <form className="mb-0 flex flex-col sm:flex-row gap-3 items-start" onSubmit={handleAddPost}>
-          <div className="w-full sm:w-auto flex-1">
-            <input
-              type="text"
-              placeholder="Post Title"
-              className="border p-2 mr-2 rounded w-full"
-              value={title}
-              onChange={(e) => setTitle(e.target.value)}
-              aria-invalid={!!formErrors.title}
-            />
-            {formErrors.title && <div className="text-red-600 text-sm mt-1">{formErrors.title}</div>}
-          </div>
-
-          <div className="w-full sm:w-auto flex-1">
-            <input
-              type="text"
-              placeholder="Post Body"
-              className="border p-2 mr-2 rounded w-full"
-              value={body}
-              onChange={(e) => setBody(e.target.value)}
-              aria-invalid={!!formErrors.body}
-            />
-            {formErrors.body && <div className="text-red-600 text-sm mt-1">{formErrors.body}</div>}
-          </div>
-
-          <div className="flex gap-2">
-            <button
-              type="submit"
-              className="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded disabled:opacity-50 cursor-pointer"
-              disabled={adding}
-            >
-              {adding ? (editingId ? "Updating..." : "Adding...") : editingId ? "Update" : "Add Post"}
-            </button>
-
-            {editingId && (
-              <button
-                type="button"
-                onClick={handleCancelEdit}
-                className="bg-gray-300 hover:bg-gray-400 text-gray-800 px-4 py-2 rounded"
-                disabled={adding}
-              >
-                Cancel
-              </button>
-            )}
-          </div>
-        </form>
-      </div>
+      {/* Add / Update Post (separate component) */}
+      <AddEditPost
+        title={title}
+        body={body}
+        formErrors={formErrors}
+        adding={adding}
+        editingId={editingId}
+        onTitleChange={setTitle}
+        onBodyChange={setBody}
+        onSubmit={handleAddPost}
+        onCancel={handleCancelEdit}
+      />
 
       {/* Posts list */}
       <div>
@@ -296,12 +219,12 @@ export default function Dashboard(): JSX.Element {
                 <div className="flex items-center justify-between mt-3">
                   <div className="text-xs text-gray-400">Post ID: {post.id}</div>
                   <div className="flex gap-2">
-                    <button onClick={() => handleEditPost(post)} className="text-sm text-blue-600 hover:underline">
+                    <button onClick={() => handleEditPost(post)} className="text-sm text-blue-600 hover:underline cursor-pointer">
                       Edit
                     </button>
                     <button
                       onClick={() => handleDeletePost(post.id)}
-                      className="text-sm text-red-600 hover:underline"
+                      className="text-sm text-red-600 hover:underline cursor-pointer"
                       disabled={deletingId === post.id}
                     >
                       {deletingId === post.id ? "Deleting..." : "Delete"}
@@ -316,12 +239,10 @@ export default function Dashboard(): JSX.Element {
         )}
       </div>
 
-      {/* Toast */}
-      {isToastVisible && (
-        <div className="fixed right-4 top-4 bg-green-600 text-white px-4 py-2 rounded shadow z-50">
-          {toastMessage}
-        </div>
-      )}
+      {/* Toast (from hook) */}
+      {Toast}
     </div>
   );
-}
+};
+
+export default Dashboard;

@@ -1,23 +1,17 @@
-import { useState, useEffect } from "react";
+import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../contexts/AuthContext";
+import type { SignInForm, SignInErrors } from "../types/types";
 
-export default function SignIn() {
+const SignIn = (): React.ReactElement => {
   const { login } = useAuth();
-  // Form data as plain object
-  const [formData, setFormData] = useState({
-    email: "",
-    password: "",
-  });
-
-  // Error and state management
-  const [errors, setErrors] = useState<{ email?: string; password?: string }>({});
-  const [apiError, setApiError] = useState("");
-  const [loading, setLoading] = useState(false);
+  const [formData, setFormData] = useState<SignInForm>({ email: "", password: "" });
+  const [errors, setErrors] = useState<SignInErrors>({});
+  const [apiError, setApiError] = useState<string>("");
+  const [loading, setLoading] = useState<boolean>(false);
 
   const navigate = useNavigate();
 
-  // Redirect away if already signed in
   useEffect(() => {
     const token = localStorage.getItem("token");
     if (token) {
@@ -25,16 +19,14 @@ export default function SignIn() {
     }
   }, [navigate]);
 
-  // Input change handler
-  function handleChange(e: React.ChangeEvent<HTMLInputElement>) {
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement>): void => {
     const { name, value } = e.target;
-    setFormData((prev) => ({ ...prev, [name]: value }));
-    setErrors((prev) => ({ ...prev, [name]: "" }));
-  }
+    setFormData(prev => ({ ...prev, [name]: value }));
+    setErrors(prev => ({ ...prev, [name]: "" }));
+  };
 
-  // Validation
-  const validate = () => {
-    const newErrors: { email?: string; password?: string } = {};
+  const validate = (): SignInErrors => {
+    const newErrors: SignInErrors = {};
 
     if (!formData.email.trim()) {
       newErrors.email = "Email is required";
@@ -49,8 +41,14 @@ export default function SignIn() {
     return newErrors;
   };
 
-  // Submit handler
-  const handleSubmit = async (e: React.FormEvent) => {
+  // reset sign in form
+  const resetForm = (): void => {
+    setFormData({ email: "", password: "" });
+    setErrors({});
+    setApiError("");
+  };
+
+  const handleSubmit = async (e: React.FormEvent): Promise<void> => {
     e.preventDefault();
     setApiError("");
 
@@ -62,33 +60,24 @@ export default function SignIn() {
 
     try {
       setLoading(true);
-      console.log("formData:", formData);
 
       const response = await fetch("https://jsonplaceholder.typicode.com/posts", {
         method: "POST",
-        headers: { 
-          "Content-Type": "application/json" },
-        body: JSON.stringify({
-          email: formData.email,
-          password: formData.password,
-        }),
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email: formData.email, password: formData.password }),
       });
 
       const data = await response.json();
-      console.log("data:", data);
 
       if (!response.ok) {
-        throw new Error(data.error || "Login failed");
+        throw new Error((data as any).error || "Login failed");
       }
 
-      // store token and redirect to dashboard
-      const token = String(data.id ?? "");
-      // update context (also persists to localStorage via provider)
+      const token = String((data as any).id ?? "");
       login(token);
       alert("Login successful!");
-      // SPA navigation (preferred)
       navigate("/dashboard", { replace: true });
-      // Fallback: rarely needed, but keep if you want a hard reload
+
       setTimeout(() => {
         if (window.location.pathname !== "/dashboard") {
           window.location.href = "/dashboard";
@@ -98,6 +87,7 @@ export default function SignIn() {
       setApiError(error?.message ?? "An error occurred");
     } finally {
       setLoading(false);
+      resetForm();
     }
   };
 
@@ -108,7 +98,6 @@ export default function SignIn() {
 
         <form onSubmit={handleSubmit} className="w-full">
           <div className="space-y-4 w-full">
-            {/* Email field */}
             <div>
               <input
                 type="email"
@@ -118,12 +107,9 @@ export default function SignIn() {
                 value={formData.email}
                 onChange={handleChange}
               />
-              {errors.email && (
-                <p className="text-red-500 text-sm mt-1">{errors.email}</p>
-              )}
+              {errors.email && <p className="text-red-500 text-sm mt-1">{errors.email}</p>}
             </div>
 
-            {/* Password field */}
             <div>
               <input
                 type="password"
@@ -133,17 +119,11 @@ export default function SignIn() {
                 value={formData.password}
                 onChange={handleChange}
               />
-              {errors.password && (
-                <p className="text-red-500 text-sm mt-1">{errors.password}</p>
-              )}
+              {errors.password && <p className="text-red-500 text-sm mt-1">{errors.password}</p>}
             </div>
 
-            {/* API error */}
-            {apiError && (
-              <p className="text-red-600 text-sm">{apiError}</p>
-            )}
+            {apiError && <p className="text-red-600 text-sm">{apiError}</p>}
 
-            {/* Submit button */}
             <div>
               <button
                 type="submit"
@@ -158,4 +138,6 @@ export default function SignIn() {
       </div>
     </div>
   );
-}
+};
+
+export default SignIn;

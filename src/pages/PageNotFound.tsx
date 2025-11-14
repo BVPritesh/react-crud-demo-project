@@ -1,6 +1,7 @@
+import React from "react";
 import { Link } from "react-router-dom";
 
-export default function PageNotFound() {
+const PageNotFound = (): React.ReactElement => {  
   return (
     <div className="flex flex-col items-center justify-center h-screen bg-gray-100">
       <div className="flex justify-center items-center gap-3 flex-col">
@@ -11,4 +12,6 @@ export default function PageNotFound() {
       </div>
     </div>
   );
-}
+};
+
+export default PageNotFound;

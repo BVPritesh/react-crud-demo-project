@@ -1,19 +1,15 @@
-import { useState, useEffect } from "react";
+import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../contexts/AuthContext";
+import type { SignUpErrors, SignUpForm } from "@/types/types";
 
-export default function SignUp() {
+
+const SignUp = (): React.ReactElement => {
   const { login } = useAuth();
-  const [formData, setFormData] = useState({
-    name: "",
-    email: "",
-    username: "",
-    password: ""
-  });
-
-  const [errors, setErrors] = useState<any>({});
-  const [apiError, setApiError] = useState("");
-  const [loading, setLoading] = useState(false);
+  const [formData, setFormData] = useState<SignUpForm>({ name: "", email: "", username: "", password: "" });
+  const [errors, setErrors] = useState<SignUpErrors>({});
+  const [apiError, setApiError] = useState<string>("");
+  const [loading, setLoading] = useState<boolean>(false);
 
   const navigate = useNavigate();
 
@@ -25,15 +21,15 @@ export default function SignUp() {
     }
   }, [navigate]);
 
-  function handleChange(e: { target: { name: string; value: string; }; }) {
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement>): void => {
     const { name, value } = e.target;
-    setFormData({ ...formData, [name]: value });
-    setErrors({ ...errors, [name]: "" });
-  }
+    setFormData(prev => ({ ...prev, [name]: value }));
+    setErrors(prev => ({ ...prev, [name]: "" }));
+  };
 
-    // Basic validation function
-  const validate = () => {
-    const newErrors: any = {};
+  // Basic validation function
+  const validate = (): SignUpErrors => {
+    const newErrors: SignUpErrors = {};
 
     if (!formData.email.trim()) {
       newErrors.email = "Email is required";
@@ -44,13 +40,13 @@ export default function SignUp() {
     if (!formData.name.trim()) {
       newErrors.name = "Name is required";
     } else if(!/^[A-Za-z]+$/.test(formData.name)) {
-      newErrors.name = "Please enter character only";
+      newErrors.name = "Please enter characters only";
     }
 
     if (!formData.username.trim()) {
       newErrors.username = "Username is required";
     } else if (!/^[A-Za-z0-9!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?]+$/.test(formData.username)) {
-      newErrors.username = "Please enter character, number and specical character only";
+      newErrors.username = "Please enter character, number and special character only";
     }
 
     if (!formData.password.trim()) {
@@ -60,8 +56,15 @@ export default function SignUp() {
     return newErrors;
   };
 
-    // Submit handler
-  const handleSubmit = async (e: { preventDefault: () => void; }) => {
+  // reset sign up form
+  const resetForm = (): void => {
+    setFormData({ name: "", email: "", username: "", password: "" });
+    setErrors({});
+    setApiError("");
+  };
+
+  // Submit handler
+  const handleSubmit = async (e: React.FormEvent): Promise<void> => {
     e.preventDefault();
     setApiError("");
 
@@ -82,33 +85,25 @@ export default function SignUp() {
 
       const data = await response.json();
 
-      console.log("data : ", data);
-
       if (!response.ok) {
-        throw new Error(data.error || "Sign up failed");
+        throw new Error((data as any).error || "Sign up failed");
       }
 
-      // store token and redirect to dashboard
-      const token = String(data.id ?? "");
+      const token = String((data as any).id ?? "");
       login(token);
       alert("Sign up successful!");
-      // SPA navigation (preferred)
       navigate("/dashboard", { replace: true });
-      // Fallback: if the SPA router doesn't update the UI immediately,
-      // force a full navigation so the dashboard reads localStorage.
+
       setTimeout(() => {
         if (window.location.pathname !== "/dashboard") {
           window.location.href = "/dashboard";
         }
       }, 100);
-
-      console.log("Sign up Response:", data);
-      // You can store token in localStorage
-
     } catch (error: any) {
       setApiError(error?.message ?? "An error occurred");
     } finally {
       setLoading(false);
+      resetForm();
     }
   };
 
@@ -201,4 +196,6 @@ export default function SignUp() {
       </div>
     </div>
   );
-}
+};
+
+export default SignUp;

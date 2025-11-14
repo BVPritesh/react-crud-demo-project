@@ -7,12 +7,10 @@ type AuthContextType = {
   logout: () => void;
 };
 
-const AuthContext = createContext<AuthContextType | undefined>(undefined);
+const AuthContext = createContext<AuthContextType | null>(null);
 
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const [token, setToken] = useState<string | null>(() => {
-    return localStorage.getItem("token");
-  });
+  const [token, setToken] = useState<string | null>(() => localStorage.getItem("token"));
 
   useEffect(() => {
     if (token) {
@@ -22,13 +20,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   }, [token]);
 
-  const login = (t: string) => {
+  const login = (t: string): void => {
     setToken(t);
   };
 
-  const logout = () => {
+  const logout = (): void => {
     setToken(null);
-    // optional: navigate to home / sign-in handled by caller or layout
   };
 
   return (
@@ -38,8 +35,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   );
 };
 
-export const useAuth = () => {
+export const useAuth = (): AuthContextType => {
   const ctx = useContext(AuthContext);
-  if (!ctx) throw new Error("useAuth must be used within AuthProvider");
+  if (ctx === null) throw new Error("useAuth must be used within AuthProvider");
   return ctx;
 };

@@ -1,5 +1,5 @@
-
-export default function Home() {
+import React from "react";
+const Home = (): React.ReactElement => {    
   return (
     <div className="flex flex-col items-center justify-center h-screen bg-gray-100">
       <div className="flex justify-center items-center gap-3 flex-col">
@@ -9,4 +9,6 @@ export default function Home() {
       </div>
     </div>
   );
-}
+};
+
+export default Home;
