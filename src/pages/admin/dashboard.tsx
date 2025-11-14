@@ -1,10 +1,10 @@
-import ENDPOINTS from "../../config/api";
+import ENDPOINTS from "@config/api";
 import React, { useEffect, useState } from "react";
-import { validatePostForm, type FormErrors } from "../../utils/validation";
+import { validatePostForm, type FormErrors } from "@utils/validation";
 import { useAuth } from "../../contexts/AuthContext";
 import type { Post } from "../../types/types";
-import useToast from "../../hooks/useToast";
-import AddEditPost from "../../components/AddEditPost";
+import useToast from "@hooks/useToast";
+import AddEditPost from "@components/AddEditPost";
 
 const Dashboard = (): React.ReactElement => {
   const { token } = useAuth();

@@ -1,5 +1,5 @@
 import React from "react";
-import type { FormErrors } from "../utils/validation";
+import type { FormErrors } from "@utils/validation";
 
 type Props = {
   title: string;

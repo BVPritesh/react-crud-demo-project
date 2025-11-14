@@ -35,7 +35,8 @@
       "@types/*": ["src/types/*"],
       "@utils/*": ["src/utils/*"],
       "@hooks/*": ["src/hooks/*"],
-      "@contexts/*": ["src/contexts/*"]
+      "@contexts/*": ["src/contexts/*"],
+      "@config/*": ["src/config/*"]
     },
 
     /* Linting */
