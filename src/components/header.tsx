@@ -1,6 +1,6 @@
 import React, { useEffect, useRef, useState } from "react";
 import { NavLink, useNavigate } from "react-router-dom";
-import { useAuth } from "../contexts/AuthContext";
+import { useAuth } from "@contexts/AuthContext";
 
 const Header = (): React.ReactElement => {
   const { isAuthenticated, logout } = useAuth();
@@ -8,15 +8,8 @@ const Header = (): React.ReactElement => {
 
   const [menuOpen, setMenuOpen] = useState<boolean>(false);
   const [hideHeader, setHideHeader] = useState<boolean>(false);
-  const [lastScroll, setLastScroll] = useState<number>(0);
   const lastScrollRef = useRef<number>(0);
   const [isMobile, setIsMobile] = useState<boolean>(window.innerWidth < 768);
-  const [isLoggedIn, setIsLoggedIn] = useState<boolean>(!!localStorage.getItem("token"));
-
-  // Functions defined outside useEffect per ES6 style
-  const checkToken = (): void => {
-    setIsLoggedIn(!!localStorage.getItem("token"));
-  };
 
   const handleResize = (): void => {
     setIsMobile(window.innerWidth < 768);
@@ -30,19 +23,7 @@ const Header = (): React.ReactElement => {
       setHideHeader(false); // scrolling up or near top
     }
     lastScrollRef.current = currentScroll;
-    setLastScroll(currentScroll);
   };
-
-  // Update auth state when localStorage changes (like logout/login)
-  useEffect(() => {
-    window.addEventListener("storage", checkToken);
-    return () => window.removeEventListener("storage", checkToken);
-  }, []); // checkToken reference from first render is used for add/remove
-
-  // Detect login state on load
-  useEffect(() => {
-    checkToken();
-  }, []);
 
   // Handle logout
   const handleLogout = (): void => {
