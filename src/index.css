@@ -1,0 +1,46 @@
+@import "tailwindcss";
+
+@theme {
+  --font-poppins: 'Poppins', 'sans-serif';
+  --font-opensans: 'Open Sans', 'sans-serif';
+}
+
+@layer base {
+
+    *, *::before, *::after {
+        @apply box-border;
+    }
+
+    html, body {
+        @apply m-0 p-0;
+    }
+
+    body {
+        @apply font-poppins text-base bg-white text-gray-800;
+    }
+
+    h1 {
+        @apply text-3xl lg:text-4xl font-bold;
+    }
+
+    .site-wrapper {
+        @apply min-h-screen pt-10 lg:pt-[72px];
+    }
+}
+
+@layer components {
+
+    .form-control {
+        @apply border border-gray-500 rounded-md py-2 px-4 h-10 w-full;
+    }
+
+    .btn-primary {
+        @apply py-1 px-4 min-h-10 flex items-center rounded-md cursor-pointer outline-0 border-0 bg-blue-600 hover:bg-blue-900 text-white;
+    }
+}
+
+@layer utilities {
+    .custom-container {
+        @apply max-w-[1240px] px-5 mx-auto w-full;
+    }
+}
